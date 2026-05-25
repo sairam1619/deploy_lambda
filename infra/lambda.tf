@@ -6,9 +6,9 @@ resource "aws_lambda_function" "lambda_function" {
 
   handler = "app.lambda_handler"
 
-  runtime = "python3.12"
+  runtime = "python3.14"
 
-  filename = "../src/lambda/lambda.zip"
+  filename = "../src/lambda_code/lambda.zip"
 
-  source_code_hash = filebase64sha256("../src/lambda/lambda.zip")
+  source_code_hash = filebase64sha256("../src/lambda_code/lambda.zip")
 }
