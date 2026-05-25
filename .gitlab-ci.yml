@@ -1,0 +1,143 @@
+image:
+  name: hashicorp/terraform:latest
+
+  entrypoint:
+    - ""
+
+stages:
+  - format
+  - validate
+  - test
+  - package
+  - deploy
+  - destroy
+
+variables:
+  TF_ROOT: "infra"
+
+before_script:
+  - apk add --no-cache python3 py3-pip zip bash
+  - pip install pytest boto3 moto awscli
+  - terraform --version
+  - aws --version
+
+#################################################
+# TERRAFORM FORMAT
+#################################################
+
+terraform_format:
+  stage: format
+
+  script:
+    - cd $TF_ROOT
+    - terraform fmt -check -recursive
+
+#################################################
+# TERRAFORM VALIDATE
+#################################################
+
+terraform_validate:
+  stage: validate
+
+  script:
+    - cd $TF_ROOT
+    - terraform init
+    - terraform validate
+
+#################################################
+# PYTEST
+#################################################
+
+test:
+  stage: test
+
+  script:
+    - pytest tests/ -v
+
+#################################################
+# PACKAGE LAMBDA
+#################################################
+
+package_lambda:
+  stage: package
+
+  script:
+    - chmod +x scripts/package_lambda.sh
+    - ./scripts/package_lambda.sh
+
+  artifacts:
+    paths:
+      - src/lambda/lambda.zip
+
+#################################################
+# DEPLOY ONLY LAMBDA
+#################################################
+
+deploy_lambda:
+  stage: deploy
+
+  dependencies:
+    - package_lambda
+
+  script:
+    - cd $TF_ROOT
+    - terraform init
+    - terraform apply -auto-approve -target=aws_lambda_function.lambda_function
+
+  rules:
+    - if: '$DEPLOY_LAMBDA == "true"'
+
+#################################################
+# DEPLOY ONLY GLUE
+#################################################
+
+deploy_glue:
+  stage: deploy
+
+  script:
+    - chmod +x scripts/upload_glue.sh
+    - ./scripts/upload_glue.sh
+
+    - cd $TF_ROOT
+    - terraform init
+    - terraform apply -auto-approve -target=aws_glue_job.glue_job
+
+  rules:
+    - if: '$DEPLOY_GLUE == "true"'
+
+#################################################
+# DEPLOY BOTH
+#################################################
+
+deploy_both:
+  stage: deploy
+
+  dependencies:
+    - package_lambda
+
+  script:
+    - chmod +x scripts/upload_glue.sh
+    - ./scripts/upload_glue.sh
+
+    - cd $TF_ROOT
+    - terraform init
+    - terraform apply -auto-approve
+
+  rules:
+    - if: '$DEPLOY_BOTH == "true"'
+
+#################################################
+# MANUAL DESTROY
+#################################################
+
+terraform_destroy:
+  stage: destroy
+
+  script:
+    - cd $TF_ROOT
+    - terraform init
+    - terraform destroy -auto-approve
+
+  when: manual
+
+  allow_failure: false
