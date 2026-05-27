@@ -53,9 +53,9 @@ terraform_validate:
 
 test:
   stage: test
-
   script:
     - source venv/bin/activate
+    - python -m py_compile src/lambda_code/*.py
     - pytest tests/ -v
 
 #################################################
