@@ -20,7 +20,7 @@ before_script:
   - python3 -m venv venv
   - source venv/bin/activate
   - pip install --upgrade pip
-  - pip install pytest boto3 moto awscli
+  - pip install -r requirements.txt
 
 #################################################
 # TERRAFORM FORMAT
