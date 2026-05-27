@@ -3,7 +3,7 @@ terraform {
 
     bucket = "dev-cog-generic-terraform-state-file"
 
-    key = "gitlab/terraform.tfstate"
+    key = "gitlab/lambda/terraform.tfstate"
 
     region = "us-west-2"
   }
