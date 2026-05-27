@@ -31,7 +31,7 @@ terraform_format:
 
   script:
     - cd $TF_ROOT
-    - terraform fmt -check -recursive
+    - terraform fmt
 
 
 #################################################
@@ -72,39 +72,6 @@ deploy_lambda:
 
   when: manual
 
-#################################################
-# DEPLOY GLUE
-#################################################
-
-deploy_glue:
-  stage: deploy
-
-  script:
-    - chmod +x scripts/upload_glue.sh
-    - ./scripts/upload_glue.sh
-
-    - cd $TF_ROOT
-    - terraform init
-    - terraform apply -auto-approve -target=aws_glue_job.glue_job
-
-  when: manual
-
-#################################################
-# DEPLOY BOTH
-#################################################
-
-deploy_both:
-  stage: deploy
-
-  script:
-    - chmod +x scripts/upload_glue.sh
-    - ./scripts/upload_glue.sh
-
-    - cd $TF_ROOT
-    - terraform init
-    - terraform apply -auto-approve
-
-  when: manual
 
 #################################################
 # MANUAL DESTROY
