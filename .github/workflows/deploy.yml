@@ -8,28 +8,46 @@ on:
 
 env:
   TF_ROOT: infra
-  PYTHONPATH: .
+  AWS_REGION: us-west-2
 
 jobs:
   terraform-format:
+    name: Terraform Format
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - uses: hashicorp/setup-terraform@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform Format
+      - name: Terraform Format Check
         run: |
           cd $TF_ROOT
-          terraform fmt
+          terraform fmt -check -recursive
 
   terraform-validate:
+    name: Terraform Validate
     runs-on: ubuntu-latest
     needs: terraform-format
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: hashicorp/setup-terraform@v3
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS Access
+        run: aws sts get-caller-identity
 
       - name: Terraform Init
         run: |
@@ -42,12 +60,16 @@ jobs:
           terraform validate
 
   test:
+    name: Run Unit Tests
     runs-on: ubuntu-latest
     needs: terraform-validate
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
@@ -55,59 +77,79 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pytest
 
-      - name: Compile Python
+      - name: Compile Python Files
         run: |
           python -m py_compile src/lambda_code/*.py
 
-      - name: Run Tests
+      - name: Run Pytest
         run: |
-          pytest tests/ -v
+          PYTHONPATH=. pytest tests/ -v
 
   deploy:
+    name: Deploy Lambda
     runs-on: ubuntu-latest
     needs: test
     environment: production
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - uses: hashicorp/setup-terraform@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS Access
+        run: aws sts get-caller-identity
 
       - name: Terraform Init
         run: |
           cd $TF_ROOT
           terraform init
 
-      - name: Deploy Lambda
+      - name: Terraform Plan
         run: |
           cd $TF_ROOT
-          terraform apply -auto-approve -target=aws_lambda_function.lambda_function
+          terraform plan
+
+      - name: Terraform Apply
+        run: |
+          cd $TF_ROOT
+          terraform apply -auto-approve
 
   destroy:
+    name: Destroy Infrastructure
     runs-on: ubuntu-latest
     if: false
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: hashicorp/setup-terraform@v3
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        run: |
+          cd $TF_ROOT
+          terraform init
 
       - name: Terraform Destroy
         run: |
           cd $TF_ROOT
-          terraform init
           terraform destroy -auto-approve
