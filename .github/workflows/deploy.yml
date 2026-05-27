@@ -120,14 +120,14 @@ jobs:
           terraform plan
 
       - name: Terraform Apply
+        if: github.event.inputs.action == 'apply'
         run: |
           cd $TF_ROOT
-          terraform apply -auto-approve
+          terraform apply -auto-approve -input=false
 
   destroy:
     name: Destroy Infrastructure
     runs-on: ubuntu-latest
-    if: false
 
     steps:
       - name: Checkout Code
@@ -149,6 +149,7 @@ jobs:
           terraform init
 
       - name: Terraform Destroy
+        if: github.event.inputs.action == 'apply'
         run: |
           cd $TF_ROOT
-          terraform destroy -auto-approve
+          terraform destroy -auto-approve -input=false
