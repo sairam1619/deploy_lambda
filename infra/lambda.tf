@@ -20,8 +20,8 @@ resource "aws_lambda_function" "lambda_function" {
   function_name = var.lambda_function_name
 
   role = var.lambda_role_arn
-  
-  timeout = 895
+
+  timeout = 900
 
   handler = "app.lambda_handler"
 
