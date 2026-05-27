@@ -4,7 +4,6 @@ import os
 import sys
 from boto3.dynamodb.conditions import Key, Attr
 from datetime import datetime, timedelta
-import pytz
 
 s3_client = boto3.client('s3')
 
@@ -86,7 +85,7 @@ def lambda_handler(event, context):
 	if "demo_refresh" in res_data:
 		
         # Determine current day
-		current_time = datetime.now(pytz.timezone('America/Chicago'))
+		current_time = datetime.now()
 		current_day = current_time.strftime('%A')
 		
 		if current_day not in ['Monday', 'Saturday', 'Sunday'] and res_data["demo_refresh"] == True :
