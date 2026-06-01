@@ -1,39 +1,60 @@
-import pytest
-import os
+import unittest
+from unittest.mock import MagicMock, patch
 import json
-from unittest.mock import patch
+import io
 
-# Import your handler
-from src.lambda_code.app import lambda_handler
+# Assuming your original file is named 'lambda_function.py'
+import lambda_function 
 
-class UniversalEvent(dict):
-    """A dictionary that returns an empty string instead of KeyError."""
-    def __getitem__(self, key):
-        return self.get(key, "test-value")
+class TestLambdaHandler(unittest.TestCase):
 
-def test_lambda_handler_generic():
-    """
-    Universal test: Works for any Lambda, ignores env vars, 
-    and handles JSON serialization without crashes.
-    """
-    # 1. Mock Environment Variables
-    with patch.dict(os.environ, {"AWS_REGION": "us-west-2"}, clear=True):
+    def setUp(self):
+        # Mock context object
+        self.context = MagicMock()
+        self.context.invoked_function_arn = "arn:aws:lambda:us-west-2:743020291706:function:dev-my-function"
         
-        # 2. Arrange: Use our UniversalEvent container
-        mock_event = UniversalEvent()
-        mock_context = {}
+        # Sample event
+        self.event = {
+            'Execution_Id': 'exec-123',
+            'processing_date': '2026-06-01',
+            'client_name': 'test-client'
+        }
 
-        # 3. Act: Invoke the handler
-        try:
-            response = lambda_handler(mock_event, mock_context)
-            
-            # 4. Assert: Validate the response structure
-            assert "statusCode" in response
-            assert isinstance(response["statusCode"], int)
-            
-            # Verify the body can be parsed as JSON
-            body = json.loads(response["body"])
-            assert isinstance(body, dict)
-            
-        except Exception as e:
-            pytest.fail(f"Lambda handler failed with error: {e}")
+    @patch('lambda_function.dynamo_table')
+    @patch('lambda_function.invokeLambda')
+    def test_lambda_handler_success(self, mock_lambda, mock_dynamo):
+        # Setup mocks
+        # Mock load_dynamo_config response
+        config_data = json.dumps({"stage": "GCFStatusCheckLambda"}).encode('utf-8')
+        mock_lambda.invoke.return_value = {'Payload': io.BytesIO(config_data)}
+        
+        # Mock DynamoDB scan response
+        mock_dynamo.scan.return_value = {
+            'Items': [{'gcf_status': 'Completed', 'gcd_status': 'Completed'}]
+        }
+
+        # Run handler
+        result = lambda_function.lambda_handler(self.event, self.context)
+
+        # Assertions
+        self.assertEqual(result['client_name'], 'test-client')
+        mock_dynamo.update_item.assert_called_once()
+
+    @patch('lambda_function.dynamo_table')
+    @patch('lambda_function.invokeLambda')
+    def test_lambda_handler_failure(self, mock_lambda, mock_dynamo):
+        # Setup mocks
+        config_data = json.dumps({"stage": "OtherStage"}).encode('utf-8')
+        mock_lambda.invoke.return_value = {'Payload': io.BytesIO(config_data)}
+        
+        # Simulate failed status check
+        mock_dynamo.scan.return_value = {
+            'Items': [{'gcf_status': 'Failed', 'gcd_status': 'Completed'}]
+        }
+
+        # Verify custom exception is raised
+        with self.assertRaises(lambda_function.GCFStatusCheckFailedException):
+            lambda_function.lambda_handler(self.event, self.context)
+
+if __name__ == '__main__':
+    unittest.main()
