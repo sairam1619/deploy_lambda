@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 # Add the project root to sys.path so 'src' can be imported
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
-from src.lambda_code.app import lambda_handler, GCFStatusCheckFailedException
+from src.lambda_code.app import lambda_handler
 
 @pytest.fixture
 def mock_context():
