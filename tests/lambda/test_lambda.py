@@ -1,9 +1,25 @@
+import sys
+import os
+
+# Adds the parent directory of 'src' to the path so 'src' can be imported
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+# Now you can import using the path from the root
+from src.lambda_code.app import lambda_handler, GCFStatusCheckFailedException
+
+import pytest
+import json
+import io
+from unittest.mock import MagicMock, patch
+
+# ... rest of your test code follows ...
+
 import pytest
 import json
 import io
 from unittest.mock import MagicMock, patch
 # Replace 'main' with the filename of your lambda code
-from main import lambda_handler, GCFStatusCheckFailedException
+from main import , GCFStatusCheckFailedException
 
 @pytest.fixture
 def mock_context():
