@@ -1,6 +1,6 @@
 import json
 # Replace 'your_file_name' with the actual name of your python file
-from src.lambda_code.app.py import lambda_handler 
+from src.lambda_code.app import lambda_handler 
 
 def test_lambda_handler():
     # 1. Arrange: Setup a dummy event and context
