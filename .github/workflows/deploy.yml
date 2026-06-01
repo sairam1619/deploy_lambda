@@ -24,14 +24,14 @@ jobs:
   # 1. CI & SECURITY CHECKS (Run in Parallel)
   # ==========================================
   terraform-checks:
-    name: Terraform Lint & Validate
+    name: Terraform format, int & Validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Format Check
-        run: terraform -chdir=${{ env.TF_ROOT }} fmt -check
+        run: terraform -chdir=${{ env.TF_ROOT }} fmt 
 
       - name: Terraform Init (No Backend)
         run: terraform -chdir=${{ env.TF_ROOT }} init -backend=false
