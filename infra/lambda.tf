@@ -29,12 +29,3 @@ resource "aws_lambda_function" "lambda_function" {
   }
 }
 
-# Resource for gitlab-lambda (The new one)
-resource "aws_lambda_function" "lambda_1" {
-  function_name    = "gitlab-lambda"
-  role             = var.lambda_role_arn
-  handler          = "app.lambda_handler"
-  runtime          = "python3.13"
-  filename         = data.archive_file.lambda_zip_1.output_path
-  source_code_hash = data.archive_file.lambda_zip_1.output_base64sha256
-}

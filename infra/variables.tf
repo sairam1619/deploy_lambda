@@ -3,7 +3,7 @@ variable "aws_region" {
 }
 
 variable "lambda_function_name" {
-  default = "gitlab-lambda-2"
+  default = "gitlab-lambda"
 }
 
 variable "lambda_role_arn" {
