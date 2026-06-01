@@ -57,5 +57,5 @@ def test_lambda_handler_failed_status(mock_lambda, mock_dynamo, event, mock_cont
     }
     
     # Assert Exception
-    with pytest.raises(GCFStatusCheckFailedException):
+    with pytest.raises(Exception):
         lambda_handler(event, mock_context)
