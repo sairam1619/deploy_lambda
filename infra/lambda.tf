@@ -16,18 +16,25 @@ data "archive_file" "lambda_zip" {
 #################################################
 
 resource "aws_lambda_function" "lambda_function" {
-
-  function_name = var.lambda_function_name
-
-  role = var.lambda_role_arn
-
-  timeout = 900
-
-  handler = "app.lambda_handler"
-
-  runtime = "python3.13"
-
-  filename = data.archive_file.lambda_zip.output_path
-
+  function_name    = var.lambda_function_name
+  role             = var.lambda_role_arn
+  timeout          = 900
+  handler          = "app.lambda_handler"
+  runtime          = "python3.13"
+  filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+
+  lifecycle {
+    prevent_destroy = false # Set to true once you are happy with the state
+  }
+}
+
+# Resource for gitlab-lambda (The new one)
+resource "aws_lambda_function" "lambda_1" {
+  function_name    = "gitlab-lambda"
+  role             = var.lambda_role_arn
+  handler          = "app.lambda_handler"
+  runtime          = "python3.13"
+  filename         = data.archive_file.lambda_zip_1.output_path
+  source_code_hash = data.archive_file.lambda_zip_1.output_base64sha256
 }
