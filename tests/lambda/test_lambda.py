@@ -1,37 +1,39 @@
 import pytest
 import os
-from unittest.mock import MagicMock, patch
+import json
+from unittest.mock import patch
 
-# This assumes we will pass the module path as an argument or 
-# you can use a conftest.py approach. For simplicity, we define the import.
+# Import your handler
 from src.lambda_code.app import lambda_handler
+
+class UniversalEvent(dict):
+    """A dictionary that returns an empty string instead of KeyError."""
+    def __getitem__(self, key):
+        return self.get(key, "test-value")
 
 def test_lambda_handler_generic():
     """
-    Universal test that mocks environment variables and 
-    handles any event structure without modification.
+    Universal test: Works for any Lambda, ignores env vars, 
+    and handles JSON serialization without crashes.
     """
-    
-    # 1. Mock Environment Variables: 
-    # This automatically clears/fakes all env vars so your code doesn't crash 
-    # when looking for them.
-    with patch.dict(os.environ, {"AWS_REGION": "us-west-2", "DUMMY_VAR": "true"}, clear=True):
+    # 1. Mock Environment Variables
+    with patch.dict(os.environ, {"AWS_REGION": "us-west-2"}, clear=True):
         
-        # 2. Arrange: Create a generic event. 
-        # Using MagicMock allows your code to access any key (event['any'])
-        # without raising a KeyError.
-        mock_event = MagicMock()
-        mock_context = MagicMock()
+        # 2. Arrange: Use our UniversalEvent container
+        mock_event = UniversalEvent()
+        mock_context = {}
 
         # 3. Act: Invoke the handler
-        # If your code expects dictionary-like access, MagicMock handles it.
         try:
             response = lambda_handler(mock_event, mock_context)
             
-            # 4. Assert: We only check for the universal standard: a status code.
+            # 4. Assert: Validate the response structure
             assert "statusCode" in response
             assert isinstance(response["statusCode"], int)
             
+            # Verify the body can be parsed as JSON
+            body = json.loads(response["body"])
+            assert isinstance(body, dict)
+            
         except Exception as e:
-            # This catches cases where the Lambda code is fundamentally broken
             pytest.fail(f"Lambda handler failed with error: {e}")
