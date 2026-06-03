@@ -3,7 +3,7 @@ variable "aws_region" {
 }
 
 variable "lambda_function_name" {
-  default = "lambda-2"
+  default = "lambda"
 }
 
 variable "lambda_role_arn" {
