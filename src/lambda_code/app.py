@@ -47,7 +47,6 @@ def lambda_handler(event, context):
 
     response = dynamo_table.scan(FilterExpression=Attr('client_id').eq(client_name))
     print("stage_response :",response) 
-    print("Updated code of lambda!")
     gcf_status = response['Items'][0]['gcf_status']  
     gcd_status = response['Items'][0]['gcd_status']
     
