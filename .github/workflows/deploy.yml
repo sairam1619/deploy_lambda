@@ -120,11 +120,11 @@ jobs:
           
           # Check if the Lambda function is scheduled for destruction
           # Note: Change "aws_lambda_function.this" if your Terraform resource name is different
-          IS_DESTROYING=$(jq '[.resource_changes[]? | select(.address == "aws_lambda_function.this" and (.change.actions | contains(["delete"]) or contains(["delete", "create"])))] | length' tfplan.json)
+          IS_DESTROYING=$(jq '[.resource_changes[]? | select(.address == "aws_lambda_function.lambda_function" and (.change.actions | contains(["delete"]) or contains(["delete", "create"])))] | length' tfplan.json)
           
           if [ "$IS_DESTROYING" -gt "0" ]; then
             echo "Name change detected! Detaching the old Lambda function from Terraform state..."
-            terraform state rm aws_lambda_function.this
+            terraform state rm aws_lambda_function.lambda_function
             
             echo "Re-running Terraform plan to create the new function..."
             terraform plan -out=tfplan
