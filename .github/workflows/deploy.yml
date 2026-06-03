@@ -79,6 +79,9 @@ jobs:
   # ==========================================
   # 2. DEPLOYMENT (Requires Manual Approval)
   # ==========================================
+  # ==========================================
+  # 2. DEPLOYMENT (Requires Manual Approval)
+  # ==========================================
   deploy:
     name: Deploy Infrastructure
     runs-on: ubuntu-latest
@@ -92,6 +95,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false # Crucial for accurate JSON output
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -104,7 +109,28 @@ jobs:
         run: terraform -chdir=${{ env.TF_ROOT }} init
 
       - name: Terraform Plan
-        run: terraform -chdir=${{ env.TF_ROOT }} plan
+        id: plan
+        run: |
+          terraform -chdir=${{ env.TF_ROOT }} plan -out=tfplan
+          terraform -chdir=${{ env.TF_ROOT }} show -json tfplan > ${{ env.TF_ROOT }}/tfplan.json
+
+      - name: Intercept Destroy and Detach State
+        run: |
+          cd ${{ env.TF_ROOT }}
+          
+          # Check if the Lambda function is scheduled for destruction
+          # Note: Change "aws_lambda_function.this" if your Terraform resource name is different
+          IS_DESTROYING=$(jq '[.resource_changes[]? | select(.address == "aws_lambda_function.this" and (.change.actions | contains(["delete"]) or contains(["delete", "create"])))] | length' tfplan.json)
+          
+          if [ "$IS_DESTROYING" -gt "0" ]; then
+            echo "Name change detected! Detaching the old Lambda function from Terraform state..."
+            terraform state rm aws_lambda_function.this
+            
+            echo "Re-running Terraform plan to create the new function..."
+            terraform plan -out=tfplan
+          else
+            echo "No name change detected. Proceeding normally."
+          fi
 
       - name: Terraform Apply
-        run: terraform -chdir=${{ env.TF_ROOT }} apply -auto-approve
+        run: terraform -chdir=${{ env.TF_ROOT }} apply -auto-approve tfplan
