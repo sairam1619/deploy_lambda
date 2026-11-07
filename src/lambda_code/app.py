@@ -56,3 +56,4 @@ def lambda_handler(event, context):
         raise GCFStatusCheckFailedException("GCF status check failed ") 
 
     return {'client_name': client_name , 'Execution_Id': Execution_Id, 'processing_date': processing_date} 
+    
